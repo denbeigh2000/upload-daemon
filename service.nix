@@ -54,8 +54,27 @@ in
       default = null;
       example = 4;
     };
+    user = mkOption {
+      description = "User to run daemon as";
+      type = nullOr str;
+      default = null;
+      example = "upload-daemon";
+    };
+    group = mkOption {
+      description = "Group to run daemon as";
+      type = nullOr str;
+      default = cfg.user;
+      example = "upload-daemon";
+    };
   };
   config = mkIf cfg.enable {
+    users.users.${cfg.user} = {
+      isSystemUser = true;
+      # Necessary for using ssh transfers
+      home = "/home/${cfg.user}";
+      group = cfg.group;
+    };
+
     systemd.services.upload-daemon = {
       inherit description;
       wantedBy = [ "multi-user.target" ];
@@ -71,11 +90,13 @@ in
           ${lib.optionalString (! isNull cfg.prometheusPort) "--stat-port ${toString cfg.prometheusPort}"} \
           -j "$workers" \
           +RTS -N"$workers"
-      '';
-        serviceConfig = {
-          Restart = "always";
-          RuntimeDirectory = "upload-daemon";
-        };
+        '';
+      serviceConfig = {
+        Restart = "always";
+        RuntimeDirectory = "upload-daemon";
+        User = cfg.user;
+        Group = cfg.group;
+      };
     };
     nix.extraOptions = lib.optionalString cfg.post-build-hook.enable "post-build-hook = ${upload-paths}";
   };
