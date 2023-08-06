@@ -35,6 +35,13 @@
         inputsFrom = [ self.packages.${system}.upload-daemon.env ];
       };
     }) // {
-      nixosModules.upload-daemon = import ./service.nix self;
+        darwinModules = rec {
+          upload-daemon = import ./darwin.nix self;
+          default = upload-daemon;
+        };
+        nixosModules = rec {
+          upload-daemon = import ./service.nix self;
+          default = upload-daemon;
+        };
     };
 }
